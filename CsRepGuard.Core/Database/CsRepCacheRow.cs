@@ -1,4 +1,5 @@
 using System;
+using CsRepGuard.Modules;
 using SqlSugar;
 
 namespace CsRepGuard.Database;
@@ -52,4 +53,30 @@ internal sealed class CsRepCacheRow
     /// <summary>When the CSRep data was last fetched. Used for TTL enforcement and purge.</summary>
     [SugarColumn(ColumnName = "RefreshedAt")]
     public DateTime RefreshedAt { get; set; }
+
+    /// <summary>
+    /// Convert a cached row back into a <see cref="CsRepPlayer"/> so flag evaluation / display can
+    /// reuse a single code path regardless of cache-vs-API source. Single source of truth — do not
+    /// duplicate this mapping in the modules.
+    /// </summary>
+    public CsRepPlayer ToPlayer() => new()
+    {
+        Bans = new CsRepBans
+        {
+            Vac              = Vac,
+            Game             = Game,
+            Faceit           = Faceit,
+            Economy          = Economy,
+            Community        = Community,
+            Overwatch        = Overwatch,
+            DaysSinceLastBan = DaysSinceLastBan,
+        },
+        TrustRating    = TrustRating,
+        FaceitLevel    = FaceitLevel,
+        FaceitElo      = FaceitElo,
+        Cs2Hours       = Cs2Hours,
+        SteamCreatedAt = SteamCreatedAt,
+        SteamLevel     = SteamLevel,
+        Redacted       = Redacted,
+    };
 }

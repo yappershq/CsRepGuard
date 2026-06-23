@@ -197,7 +197,7 @@ internal sealed class CsRepCommandModule
 
             if (cached is not null)
             {
-                player = CachedToPlayer(cached);
+                player = cached.ToPlayer();
             }
             else
             {
@@ -272,8 +272,10 @@ internal sealed class CsRepCommandModule
             var lines = sb.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
             _bridge.ModSharp.InvokeFrameAction(() =>
             {
+                // Re-validate after the async hop: IsInGame is the only safe gate (IsConnected/IsValid
+                // can be true during loading/limbo and yield a half-valid client).
                 var inv = _bridge.ClientManager.GetGameClient(invokerSteam);
-                if (inv is null || !inv.IsValid) return;
+                if (inv is not { IsInGame: true }) return;
                 foreach (var line in lines)
                     inv.Print(HudPrintChannel.Chat, line);
             });
@@ -293,32 +295,12 @@ internal sealed class CsRepCommandModule
     {
         _bridge.ModSharp.InvokeFrameAction(() =>
         {
+            // IsInGame is the only safe gate after an async hop.
             var inv = _bridge.ClientManager.GetGameClient(invokerSteam);
-            if (inv is null || !inv.IsValid) return;
+            if (inv is not { IsInGame: true }) return;
             inv.Print(HudPrintChannel.Chat, msg);
         });
     }
 
     private static string BoolStr(bool v) => v ? "YES" : "No";
-
-    private static CsRepPlayer CachedToPlayer(CsRepCacheRow row) => new()
-    {
-        Bans = new CsRepBans
-        {
-            Vac              = row.Vac,
-            Game             = row.Game,
-            Faceit           = row.Faceit,
-            Economy          = row.Economy,
-            Community        = row.Community,
-            Overwatch        = row.Overwatch,
-            DaysSinceLastBan = row.DaysSinceLastBan,
-        },
-        TrustRating    = row.TrustRating,
-        FaceitLevel    = row.FaceitLevel,
-        FaceitElo      = row.FaceitElo,
-        Cs2Hours       = row.Cs2Hours,
-        SteamCreatedAt = row.SteamCreatedAt,
-        SteamLevel     = row.SteamLevel,
-        Redacted       = row.Redacted,
-    };
 }

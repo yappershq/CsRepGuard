@@ -123,7 +123,7 @@ internal sealed class CsRepCheckModule : IClientListener
             if (cached is not null)
             {
                 // Serve from cache.
-                player = CachedToPlayer(cached);
+                player = cached.ToPlayer();
             }
             else
             {
@@ -186,8 +186,10 @@ internal sealed class CsRepCheckModule : IClientListener
     {
         // Re-validate: player may have left while we queried.
         // Webhook was already sent async — in-game chat is best-effort; skip if disconnected.
+        // IsInGame (not IsConnected/IsValid) is the only safe gate after an async hop — IsConnected
+        // is true during loading/limbo and yields half-valid clients.
         var client = _bridge.ClientManager.GetGameClient(steamId);
-        var playerStillOnServer = client is not null && client.IsValid && !client.IsFakeClient;
+        var playerStillOnServer = client is { IsInGame: true, IsFakeClient: false };
 
         // §8 Attribution + §6.A disclaimer in every output.
         var profileLink = $"https://csrep.gg/players/{steamStr}";
@@ -227,26 +229,4 @@ internal sealed class CsRepCheckModule : IClientListener
 
         return triggered;
     }
-
-    /// <summary>Convert a DB cache row back into a CsRepPlayer (to reuse flag evaluation).</summary>
-    private static CsRepPlayer CachedToPlayer(CsRepCacheRow row) => new()
-    {
-        Bans = new CsRepBans
-        {
-            Vac              = row.Vac,
-            Game             = row.Game,
-            Faceit           = row.Faceit,
-            Economy          = row.Economy,
-            Community        = row.Community,
-            Overwatch        = row.Overwatch,
-            DaysSinceLastBan = row.DaysSinceLastBan,
-        },
-        TrustRating    = row.TrustRating,
-        FaceitLevel    = row.FaceitLevel,
-        FaceitElo      = row.FaceitElo,
-        Cs2Hours       = row.Cs2Hours,
-        SteamCreatedAt = row.SteamCreatedAt,
-        SteamLevel     = row.SteamLevel,
-        Redacted       = row.Redacted,
-    };
 }
