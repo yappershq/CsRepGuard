@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>CsRepGuard</AssemblyName>
+    <RootNamespace>CsRepGuard</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Self-contained DB access to the analytics DB (csrep_cache table) and HttpClient for API calls.
+       HttpClient is available via BCL (net10.0) — no additional package needed. -->
+  <ItemGroup>
+    <PackageReference Include="SqlSugarCoreNoDrive" Version="5.1.4.211" />
+    <PackageReference Include="MySqlConnector" Version="2.*" />
+  </ItemGroup>
+
+</Project>

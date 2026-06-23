@@ -1,0 +1,29 @@
+{
+  // CsRepGuard configuration
+  // POLICY: NOTIFY ONLY — csrep data is probabilistic and must NOT be used for automated bans.
+  // Human staff review is required before any punitive action (CSRep ToS §6.B).
+
+  // CSRep.gg API key (X-API-Key header). Required.
+  "csrep_api_key": "",
+
+  // Which ban flags trigger a staff notification.
+  // Valid values: vac, game, overwatch, faceit, economy, community
+  "csrep_notify_flags": [ "vac", "game", "overwatch" ],
+
+  // Cache TTL in hours. Hard-capped at 24 per CSRep ToS §9. Cannot exceed 24.
+  "csrep_cache_ttl_hours": 24,
+
+  // Discord webhook URL for staff flag alerts. Leave empty to disable webhook notifications.
+  "csrep_webhook_url": "",
+
+  // Server display name included in webhook notifications.
+  "serverName": "CS2 Server",
+
+  // Shared bypass file (same list used by AltGuard / AntiVpnGuard).
+  // Players listed here are skipped entirely.
+  "sharedBypassConfig": "bypass_steamids.json",
+
+  // Config file containing the PlayerAnalytics DB credentials.
+  // CsRepGuard reuses this file so no duplicate credentials are needed.
+  "analyticsDatabaseConfig": "playeranalytics.database.jsonc"
+}
