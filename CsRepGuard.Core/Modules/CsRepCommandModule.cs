@@ -7,7 +7,6 @@ using CsRepGuard.Database;
 using Microsoft.Extensions.Logging;
 using Sharp.Modules.AdminManager.Shared;
 using Sharp.Shared.Enums;
-using Sharp.Shared.Managers;
 using Sharp.Shared.Objects;
 using Sharp.Shared.Types;
 using Sharp.Shared.Units;
@@ -34,10 +33,6 @@ internal sealed class CsRepCommandModule
     private readonly CsRepApiClient                _api;
     private readonly ILogger<CsRepCommandModule>   _logger;
 
-    private IClientManager.DelegateClientCommand? _fallbackCsrep;
-    private IClientManager.DelegateClientCommand? _fallbackRep;
-    private bool                                  _usedRegistry;
-
     public CsRepCommandModule(
         InterfaceBridge              bridge,
         CsRepConfig                  config,
@@ -54,63 +49,25 @@ internal sealed class CsRepCommandModule
 
     public void Start()
     {
-        if (_bridge.AdminManager is { } am)
+        if (_bridge.AdminManager is not { } am)
         {
-            // Register custom permission so "*" root flag expands to cover it.
-            am.MountAdminManifest(ModuleId, () => new AdminTableManifest(
-                new System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<string>>
-                    { ["csrepguard"] = [PermLookup] },
-                [],
-                []));
-
-            am.GetCommandRegistry(ModuleId)
-              .RegisterAdminCommand("csrep", OnCsRepCommand, ImmutableArray.Create(PermLookup));
-            am.GetCommandRegistry(ModuleId)
-              .RegisterAdminCommand("rep",   OnCsRepCommand, ImmutableArray.Create(PermLookup));
-
-            _usedRegistry = true;
-            _logger.LogInformation("[CsRepGuard] !csrep / !rep registered (perm {Perm})", PermLookup);
+            _logger.LogError("[CsRepGuard] AdminManager unavailable — !csrep / !rep NOT registered (requires AdminManager for permission gating).");
+            return;
         }
-        else
-        {
-            // AdminManager unavailable — install raw callbacks but guard manually via GetAdmin.
-            // If AdminManager isn't present either, deny access entirely so non-admins can't use the command.
-            _fallbackCsrep = (client, cmd) =>
-            {
-                if (client is null || client.IsFakeClient) return ECommandAction.Handled;
-                if (_bridge.AdminManager?.GetAdmin(client.SteamId) is null)
-                {
-                    client.Print(HudPrintChannel.Chat, " [CsRepGuard] You do not have permission to use this command.");
-                    return ECommandAction.Handled;
-                }
-                OnCsRepCommand(client, cmd);
-                return ECommandAction.Handled;
-            };
-            _fallbackRep = (client, cmd) =>
-            {
-                if (client is null || client.IsFakeClient) return ECommandAction.Handled;
-                if (_bridge.AdminManager?.GetAdmin(client.SteamId) is null)
-                {
-                    client.Print(HudPrintChannel.Chat, " [CsRepGuard] You do not have permission to use this command.");
-                    return ECommandAction.Handled;
-                }
-                OnCsRepCommand(client, cmd);
-                return ECommandAction.Handled;
-            };
-            _bridge.ClientManager.InstallCommandCallback("csrep", _fallbackCsrep);
-            _bridge.ClientManager.InstallCommandCallback("rep",   _fallbackRep);
-            _logger.LogWarning("[CsRepGuard] AdminManager unavailable — !csrep registered with GetAdmin() guard only (no perm manifest)");
-        }
+
+        am.MountAdminManifest(ModuleId, () => new AdminTableManifest(
+            new System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<string>>
+                { ["csrepguard"] = [PermLookup] },
+            [],
+            []));
+
+        am.GetCommandRegistry(ModuleId).RegisterAdminCommand("csrep", OnCsRepCommand, ImmutableArray.Create(PermLookup));
+        am.GetCommandRegistry(ModuleId).RegisterAdminCommand("rep",   OnCsRepCommand, ImmutableArray.Create(PermLookup));
+
+        _logger.LogInformation("[CsRepGuard] !csrep / !rep registered (perm {Perm})", PermLookup);
     }
 
-    public void Stop()
-    {
-        if (!_usedRegistry)
-        {
-            if (_fallbackCsrep is not null) _bridge.ClientManager.RemoveCommandCallback("csrep", _fallbackCsrep);
-            if (_fallbackRep   is not null) _bridge.ClientManager.RemoveCommandCallback("rep",   _fallbackRep);
-        }
-    }
+    public void Stop() { }
 
     /// <summary>
     /// Permission flag required to perform a CSRep lookup. Exposed so the AdminPanel
