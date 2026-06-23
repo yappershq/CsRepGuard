@@ -112,6 +112,43 @@ internal sealed class CsRepCommandModule
         }
     }
 
+    /// <summary>
+    /// Permission flag required to perform a CSRep lookup. Exposed so the AdminPanel
+    /// integration can gate its menu action against the same perm as the !csrep command.
+    /// </summary>
+    public static string LookupPermission => PermLookup;
+
+    /// <summary>
+    /// Cross-plugin entry point used by the AdminPanel menu integration. Resolves the
+    /// acting admin and target by slot on the game thread, then runs the SAME cache-first
+    /// async lookup as the !csrep command, printing the result back to the admin.
+    /// <para>Must be called on the game thread (AdminPanel guarantees this in OnSelected).</para>
+    /// </summary>
+    /// <param name="adminSlot">Slot of the admin who selected the action (lookup output goes here).</param>
+    /// <param name="targetSlot">Slot of the targeted player to look up.</param>
+    public void LookupFromPanel(int adminSlot, int targetSlot)
+    {
+        var admin  = _bridge.ClientManager.GetGameClient((PlayerSlot) (byte) adminSlot);
+        var target = _bridge.ClientManager.GetGameClient((PlayerSlot) (byte) targetSlot);
+
+        if (admin is not { IsInGame: true } || admin.IsFakeClient)
+            return;
+
+        if (target is not { IsInGame: true } || target.IsFakeClient)
+        {
+            admin.Print(HudPrintChannel.Chat, " [CsRepGuard] Target is no longer available.");
+            return;
+        }
+
+        var targetSteam = ((ulong) target.SteamId).ToString();
+        var targetName  = target.Name ?? targetSteam;
+
+        admin.Print(HudPrintChannel.Chat, $" [CsRepGuard] Looking up {targetName} ({targetSteam})...");
+
+        var invokerSteam = admin.SteamId;
+        _ = Task.Run(() => LookupAndPrintAsync(invokerSteam, targetSteam, targetName));
+    }
+
     // -------------------------------------------------------------------------
     // Command handler
     // -------------------------------------------------------------------------

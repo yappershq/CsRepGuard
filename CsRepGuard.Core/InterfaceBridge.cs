@@ -1,3 +1,4 @@
+using AdminPanel.Shared;
 using Microsoft.Extensions.Logging;
 using Sharp.Modules.AdminCommands.Shared;
 using Sharp.Modules.AdminManager.Shared;
@@ -22,6 +23,7 @@ internal sealed class InterfaceBridge
     // Resolved in OnAllModulesLoaded.
     internal IAdminService?                 AdminService { get; private set; }
     internal IAdminManager?                 AdminManager { get; private set; }
+    internal IAdminPanelShared?             AdminPanel   { get; private set; }
 
     public InterfaceBridge(string sharpPath, ISharedSystem sharedSystem)
     {
@@ -38,5 +40,8 @@ internal sealed class InterfaceBridge
             .GetOptionalSharpModuleInterface<IAdminService>(IAdminService.Identity)?.Instance;
         AdminManager = SharpModuleManager
             .GetOptionalSharpModuleInterface<IAdminManager>(IAdminManager.Identity)?.Instance;
+        // Optional — only present if the AdminPanel plugin is installed on this server.
+        AdminPanel = SharpModuleManager
+            .GetOptionalSharpModuleInterface<IAdminPanelShared>(IAdminPanelShared.Identity)?.Instance;
     }
 }

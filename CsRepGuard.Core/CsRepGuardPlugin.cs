@@ -1,4 +1,5 @@
 using System;
+using AdminPanel.Shared;
 using CsRepGuard.Configuration;
 using CsRepGuard.Database;
 using CsRepGuard.Modules;
@@ -96,15 +97,53 @@ public sealed class CsRepGuardPlugin : IModSharpModule
             _bridge.LoggerFactory.CreateLogger<CsRepCommandModule>());
         _commandModule.Start();
 
+        // Optional: inject a "CS Rep lookup" action into the in-game AdminPanel per-player menu.
+        // Null-guarded — CsRepGuard runs standalone when AdminPanel is not installed.
+        RegisterAdminPanelAction();
+
         _logger.LogInformation(
-            "[CsRepGuard] Loaded — ApiKey={HasKey}, DB={Db}, Webhook={Wh}, AdminManager={Mgr}",
-            _api.HasKey, _db.IsConnected, _webhook.Enabled, _bridge.AdminManager is not null);
+            "[CsRepGuard] Loaded — ApiKey={HasKey}, DB={Db}, Webhook={Wh}, AdminManager={Mgr}, AdminPanel={Panel}",
+            _api.HasKey, _db.IsConnected, _webhook.Enabled,
+            _bridge.AdminManager is not null, _bridge.AdminPanel is not null);
     }
 
     public void Shutdown()
     {
+        // Remove our action from the AdminPanel menu if it was registered.
+        if (_bridge.AdminPanel is { } panel)
+            panel.Unregister(AdminPanelActionId);
+
         _checkModule?.Stop();
         _commandModule?.Stop();
         _db.Dispose();
+    }
+
+    // -------------------------------------------------------------------------
+    // AdminPanel integration
+    // -------------------------------------------------------------------------
+
+    private const string AdminPanelActionId = "csrep.lookup";
+
+    /// <summary>
+    /// Registers a per-player "CS Rep lookup" action with AdminPanel (if installed). Selecting it
+    /// against a target runs the existing cache-first CSRep lookup and prints the result to the
+    /// admin — same behavior and permission (@csrepguard/lookup) as the !csrep command.
+    /// </summary>
+    private void RegisterAdminPanelAction()
+    {
+        if (_bridge.AdminPanel is not { } panel || _commandModule is not { } cmd)
+            return;
+
+        panel.RegisterPlayerAction(new AdminPanelPlayerAction
+        {
+            Id         = AdminPanelActionId,
+            Label      = "CS Rep lookup",
+            Permission = CsRepCommandModule.LookupPermission, // "@csrepguard/lookup"
+            SortOrder  = 100,
+            // Fires on the game thread with validated admin/target slots (AdminPanel contract).
+            OnSelected = (adminSlot, targetSlot) => cmd.LookupFromPanel(adminSlot, targetSlot),
+        });
+
+        _logger.LogInformation("[CsRepGuard] Registered AdminPanel action '{Id}'", AdminPanelActionId);
     }
 }

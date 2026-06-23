@@ -12,4 +12,12 @@
     <PackageReference Include="MySqlConnector" Version="2.*" />
   </ItemGroup>
 
+  <!-- Optional integration: inject a "CS Rep lookup" action into the in-game AdminPanel menu.
+       Private="false" → compile against IAdminPanelShared for type identity only; the AdminPanel
+       host plugin ships AdminPanel.Shared.dll at runtime (avoids a duplicate-assembly TypeLoad split).
+       CsRepGuard still works standalone when AdminPanel is absent (resolve is null-guarded). -->
+  <ItemGroup>
+    <ProjectReference Include="/home/claude/AdminPanel/AdminPanel.Shared/AdminPanel.Shared.csproj" Private="false" />
+  </ItemGroup>
+
 </Project>
