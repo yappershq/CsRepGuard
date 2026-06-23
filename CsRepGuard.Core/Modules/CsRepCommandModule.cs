@@ -26,7 +26,7 @@ namespace CsRepGuard.Modules;
 internal sealed class CsRepCommandModule
 {
     private const string ModuleId    = "CsRepGuard";
-    private const string PermLookup  = "@csrepguard/lookup";
+    private const string PermLookup  = "csrepguard:lookup";
 
     private readonly InterfaceBridge               _bridge;
     private readonly CsRepConfig                   _config;

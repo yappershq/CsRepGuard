@@ -17,7 +17,7 @@
        host plugin ships AdminPanel.Shared.dll at runtime (avoids a duplicate-assembly TypeLoad split).
        CsRepGuard still works standalone when AdminPanel is absent (resolve is null-guarded). -->
   <ItemGroup>
-    <ProjectReference Include="/home/claude/AdminPanel/AdminPanel.Shared/AdminPanel.Shared.csproj" Private="false" />
+    <PackageReference Include="YappersHQ.AdminPanel.Shared" Version="1.0.0" ExcludeAssets="runtime" />
   </ItemGroup>
 
 </Project>
